@@ -1,0 +1,146 @@
+service: aws-mfa-enforce
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  stage: prod
+  memorySize: 128
+  role: customRole
+
+functions:
+  cron:
+    handler: handler.handler
+    events:
+      - schedule: rate(12 hours)
+
+resources:
+  Resources:
+    customRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ServerlessFrameworkRole
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: ServerlessPolicy
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+              - Sid: AllowIAMForLambdaPolicy
+                Effect: Allow
+                Action:
+                - iam:GetGroup
+                - iam:ListUsers
+                - iam:AddUserToGroup
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+                Resource: "*"
+    mfaGroup:
+      Type: AWS::IAM::Group
+      Properties:
+        GroupName: MFA-enforced
+        Policies:
+        - PolicyName: MFA
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: AllowAllUsersToListAccounts
+                Effect: Allow
+                Action:
+                - iam:ListAccountAliases
+                - iam:ListUsers
+                - iam:ListVirtualMFADevices
+                - iam:GetAccountPasswordPolicy
+                - iam:GetAccountSummary
+                Resource: "*"
+              - Sid: AllowIndividualUserToSeeAndManageOnlyTheirOwnAccountInformation
+                Effect: Allow
+                Action:
+                - iam:ChangePassword
+                - iam:CreateAccessKey
+                - iam:CreateLoginProfile
+                - iam:DeleteAccessKey
+                - iam:DeleteLoginProfile
+                - iam:GetLoginProfile
+                - iam:ListAccessKeys
+                - iam:UpdateAccessKey
+                - iam:UpdateLoginProfile
+                - iam:ListSigningCertificates
+                - iam:DeleteSigningCertificate
+                - iam:UpdateSigningCertificate
+                - iam:UploadSigningCertificate
+                - iam:ListSSHPublicKeys
+                - iam:GetSSHPublicKey
+                - iam:DeleteSSHPublicKey
+                - iam:UpdateSSHPublicKey
+                - iam:UploadSSHPublicKey
+                Resource:
+                - 'Fn::Join':
+                  - ''
+                  - - 'arn:aws:iam::*:user/'
+                    - '${aws:username'
+                    - '}'
+              - Sid: AllowIndividualUserToViewAndManageTheirOwnMFA
+                Effect: Allow
+                Action:
+                - iam:CreateVirtualMFADevice
+                - iam:DeleteVirtualMFADevice
+                - iam:EnableMFADevice
+                - iam:ListMFADevices
+                - iam:ResyncMFADevice
+                Resource:
+                - 'Fn::Join':
+                  - ''
+                  - - 'arn:aws:iam::*:mfa/'
+                    - '${aws:username'
+                    - '}'
+                - 'Fn::Join':
+                  - ''
+                  - - 'arn:aws:iam::*:user/'
+                    - '${aws:username'
+                    - '}'
+              - Sid: AllowIndividualUserToDeactivateOnlyTheirOwnMFAOnlyWhenUsingMFA
+                Effect: Allow
+                Action:
+                - iam:DeactivateMFADevice
+                Resource:
+                - 'Fn::Join':
+                  - ''
+                  - - 'arn:aws:iam::*:mfa/'
+                    - '${aws:username'
+                    - '}'
+                - 'Fn::Join':
+                  - ''
+                  - - 'arn:aws:iam::*:user/'
+                    - '${aws:username'
+                    - '}'
+                Condition:
+                  Bool:
+                    aws:MultiFactorAuthPresent: 'true'
+              - Sid: BlockMostAccessUnlessSignedInWithMFA
+                Effect: Deny
+                NotAction:
+                - iam:CreateVirtualMFADevice
+                - iam:DeleteVirtualMFADevice
+                - iam:ListVirtualMFADevices
+                - iam:EnableMFADevice
+                - iam:ResyncMFADevice
+                - iam:ListAccountAliases
+                - iam:ListUsers
+                - iam:ListSSHPublicKeys
+                - iam:ListAccessKeys
+                - iam:ListServiceSpecificCredentials
+                - iam:ListMFADevices
+                - iam:GetAccountSummary
+                - sts:GetSessionToken
+                Resource: "*"
+                Condition:
+                  BoolIfExists:
+                    aws:MultiFactorAuthPresent: 'false'
