@@ -1,5 +1,7 @@
 # aws-mfa-enforce
 
+[![serverless](http://public.serverless.com/badges/v3.svg)](http://www.serverless.com)
+
 Serverless function to automate enforcement of Multi-Factor Authentication (MFA) to all AWS IAM users with access to AWS Management Console.
 
 ## How to use it ?
@@ -22,6 +24,10 @@ This serverless function creates an IAM Group called `MFA-enforced` with an inli
 
 - an AWS account and access keys must be setup under the default profile within `~/.aws/credentials`
 - Serverless Framework installed and setup on your machine - https://serverless.com/framework/docs/providers/aws/guide/installation/
+
+## How to remove it (if necessary) ?
+
+Goto https://console.aws.amazon.com/iam/home?#/groups/MFA-enforced and remove all users from the group. Then to remove the complete serverless function execute `sls remove`.
 
 ----
 
