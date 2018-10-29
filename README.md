@@ -11,8 +11,18 @@ Enforcing MFA to IAM users was a manual task. But now all you have to do is, set
 ```bash
 git clone https://github.com/Chan9390/aws-mfa-enforce
 cd aws-mfa-enforce
+# execute awscli commands to configure email notifications
 sls deploy
 ```
+
+To add email notification feature, edit `serverless.js` to set the email subject and body. Also ***execute the following commands before deploying***:
+
+```
+aws ssm put-parameter --name email --type String --value yourmail@gmail.com --region us-east-1
+aws ssm put-parameter --name email_password --type String --value your_password --region us-east-1
+```
+
+(Don't forget to [allow insecure apps](https://myaccount.google.com/lesssecureapps) to access your Gmail account. This setup will not work otherwise.)
 
 ## How does it work ?
 
@@ -20,9 +30,12 @@ This serverless function creates an IAM Group called `MFA-enforced` with an inli
 
 ![Lambda Architecture](.github/Architecture.png)
 
+It can also send emails to the IAM user accounts if the IAM usernames is a valid email ID. But this is optional feature.
+
 ## Pre-Requisites
 
 - an AWS account and access keys must be setup under the default profile within `~/.aws/credentials`
+- awscli (optional). Required only if email notification feature is used.
 - Serverless Framework installed and setup on your machine - https://serverless.com/framework/docs/providers/aws/guide/installation/
 
 ## How to remove it (if necessary) ?

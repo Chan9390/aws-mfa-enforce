@@ -10,6 +10,16 @@ provider:
 functions:
   cron:
     handler: handler.handler
+    environment:
+      EMAIL: ${ssm:email}
+      PASSWORD: ${ssm:email_password}
+      EMAIL_SUBJECT: Activate Multi Factor Authentication to access AWS services
+      EMAIL_BODY: > 
+        Hello,<br/>
+        <p>Your email was recently added our organizational AWS account. To enhance the security of your account Multi Factor Authentication (MFA) has been enforced. <b><i>You cannot access any AWS service until you activate MFA</i></b>.</p>
+        <p>To activate MFA for your AWS user account, please follow the steps provided at: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa_enable_virtual.html#enable-virt-mfa-for-iam-user</p><br/>
+        Regards,<br/>
+        Security Bot
     events:
       - schedule: rate(12 hours)
 
